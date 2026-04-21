@@ -1,1 +1,42 @@
+// MITRE ATT&CK: T1136.001 - Create Account: Local Account
+// Tactic: Persistence
+// Severity: High (static)
+// Data Source: SecurityEvent, EventID 4688 and EventID 4720
+//
+// Trigger: Local account created via command line or Windows account management event
+//
+// Why two signals with union:
+// An attacker can create a local account via multiple methods:
+// - Command line: net user /add (generates EventID 4688)
+// - PowerShell: New-LocalUser (generates EventID 4688)
+// - Windows API directly (generates EventID 4720 only, no 4688)
+// Using a single signal misses one method entirely.
+// The union approach catches both and reports which method was used
+// via the DetectionMethod field, narrowing the investigation immediately.
+//
+// Why High severity by default:
+// In a managed environment, local account creation outside a provisioning
+// workflow is almost never legitimate. A new account not from the IAM
+// system is either a misconfiguration or attacker persistence.
 
+union
+(SecurityEvent
+| where EventID == 4688
+| where (CommandLine has "net user" and CommandLine has "/add")
+      or CommandLine has "New-LocalUser"
+| extend DetectionMethod = "ProcessCreation"),
+(SecurityEvent
+| where EventID == 4720
+| extend DetectionMethod = "AccountManagementEvent")
+| extend
+    Severity = "High",
+    TechniqueID = "T1136.001",
+    TechniqueName = "Create Account: Local Account",
+    Tactic = "Persistence",
+    TargetAccount = coalesce(
+        TargetUserName,
+        extract(@"net user\s+(\S+)\s+", 1, CommandLine)
+    )
+| project TimeGenerated, Computer, SubjectUserName, TargetAccount,
+          CommandLine, DetectionMethod, Severity, TechniqueID, Tactic
+| order by TimeGenerated desc
