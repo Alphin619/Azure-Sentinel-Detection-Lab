@@ -1,6 +1,6 @@
 # Azure Sentinel Detection Engineering Lab
 
-> A detection engineering lab built on **Microsoft Azure** and **Microsoft Sentinel**, demonstrating end-to-end detection development across five MITRE ATT&CK techniques. This project covers infrastructure deployment, log pipeline validation, KQL detection authoring, runbook documentation, attack simulation, and threat hunting. The full workflow of a SOC detection engineer.
+A detection engineering lab built on **Microsoft Azure** and **Microsoft Sentinel**, demonstrating end-to-end detection development across five MITRE ATT&CK techniques. This project covers infrastructure deployment, log pipeline validation, KQL detection authoring, runbook documentation, attack simulation, and threat hunting. The full workflow of a SOC detection engineer.
 
 ---
 
@@ -49,7 +49,8 @@ Windows does not log everything by default. The following audit policies were en
 `auditpol /set /category:"Account Logon" /success:enable /failure:enable`  
 `auditpol /set /subcategory:"User Account Management" /success:enable /failure:enable`  
 `reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit" /v ProcessCreationIncludeCmdLine_Enabled /t REG_DWORD /d 1 /f`  
+<img width="943" height="611" alt="Screenshot 2026-04-19 151503" src="https://github.com/user-attachments/assets/3d507b20-7b2c-4b5f-9dce-c91a556dc116" />
 
-> **Why the registry key matters:** Even with Process Creation auditing enabled, the `CommandLine` field in EventID 4688 is blank by default for privacy reasons. This registry key switches it on — the difference between seeing that `powershell.exe` ran versus seeing the actual command it executed, including encoded payloads and suspicious flags.
+**Why the registry key matters:** Even with Process Creation auditing enabled, the `CommandLine` field in EventID 4688 is blank by default for privacy reasons. This registry key switches it on, the difference between seeing that `powershell.exe` ran versus seeing the actual command it executed, including encoded payloads and suspicious flags.
 
 ---
