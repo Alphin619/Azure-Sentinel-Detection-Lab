@@ -1,1 +1,45 @@
+// MITRE ATT&CK: T1087.001 - Account Discovery: Local Account
+// Tactic: Discovery
+// Severity: Dynamic (Low / Medium / High based on command count)
+// Data Source: SecurityEvent, EventID 4688
+//
+// Trigger: Multiple account enumeration commands within a 10-minute window
+//
+// Why volume-based detection:
+// A single whoami is normal developer or admin behaviour.
+// The sequence of multiple enumeration commands in a short window
+// (who am I, what groups exist, what users exist, what accounts are active)
+// is textbook post-compromise reconnaissance before lateral movement.
+// Detecting the pattern rather than individual commands reduces false positives.
+//
+// Note: CommandLine matching uses partial strings to account for full paths
+// e.g. "C:\Windows\system32\net.exe" still matches "net user"
 
+SecurityEvent
+| where EventID == 4688
+| where CommandLine has_any (
+    "net user", "net localgroup", "whoami",
+    "query user", "quser", "net accounts",
+    "Get-LocalUser", "Get-LocalGroupMember"
+)
+| summarize
+    CommandCount = count(),
+    CommandsRun = make_set(CommandLine, 20),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated)
+    by Computer, SubjectUserName, bin(TimeGenerated, 10m)
+| extend
+    Severity = case(
+        CommandCount >= 4, "High",
+        CommandCount >= 2, "Medium",
+        "Low"
+    ),
+    TechniqueID = "T1087.001",
+    TechniqueName = "Account Discovery: Local Account",
+    Tactic = "Discovery",
+    AlertReason = strcat(
+        CommandCount, " discovery commands in 10 minutes by ",
+        SubjectUserName
+    )
+| project FirstSeen, LastSeen, Computer, SubjectUserName,
+          CommandCount, CommandsRun, AlertReason, Severity, TechniqueID
