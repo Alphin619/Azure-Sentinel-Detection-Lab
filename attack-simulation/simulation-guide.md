@@ -113,4 +113,4 @@ net user testpersist /delete
 
 ## Evidence
 
-Screenshots of all fired detections are in `/evidence/`.
+Screenshots of all fired detections are in [`/evidence/`.](https://github.com/Alphin619/Azure-Sentinel-Detection-Lab/blob/main/evidence/all-process.md)
