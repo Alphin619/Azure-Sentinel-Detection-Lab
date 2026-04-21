@@ -14,7 +14,7 @@ Fires when 5 or more failed logon attempts occur against the same host within a 
 
 ## KQL Query
 
-See `/detections/T1110-001-brute-force.kql`
+See [`/detections/T1110-001-brute-force.kql`](https://github.com/Alphin619/Azure-Sentinel-Detection-Lab/blob/main/detections/T1110-001-brute-force.kql)
 
 ---
 
