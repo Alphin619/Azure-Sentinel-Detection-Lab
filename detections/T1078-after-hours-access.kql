@@ -1,1 +1,47 @@
+// MITRE ATT&CK: T1078 - Valid Accounts
+// Tactic: Initial Access / Persistence
+// Severity: High (static)
+// Data Source: SecurityEvent, EventID 4624
+//
+// Trigger: Successful interactive or RDP logon by a Tier 0 or Tier 1 account
+// outside Monday-Friday 08:00-18:00
+//
+// NOTE: This detection was not simulated in this lab as the monitored accounts
+// (breakglass, soc.analyst1) do not exist in the lab environment.
+// The query is complete and would fire correctly in a production environment.
+//
+// Why LogonType 2 and 10:
+// EventID 4624 fires for many logon types including service logons and network shares.
+// Type 2 = Interactive (console), Type 10 = RemoteInteractive (RDP).
+// Filtering to these types limits detection to human interactive sessions.
 
+let BusinessHourStart = 8;
+let BusinessHourEnd = 18;
+let MonitoredAccounts = dynamic([
+    "breakglass",
+    "soc.analyst1"
+]);
+
+SecurityEvent
+| where EventID == 4624
+| where LogonType in (2, 10)
+| where TargetUserName has_any (MonitoredAccounts)
+| extend
+    LogonHour = datetime_part("Hour", TimeGenerated),
+    DayOfWeek = dayofweek(TimeGenerated)
+| where LogonHour < BusinessHourStart
+       or LogonHour >= BusinessHourEnd
+       or DayOfWeek == 0
+       or DayOfWeek == 6
+| extend
+    Severity = "High",
+    TechniqueID = "T1078",
+    TechniqueName = "Valid Accounts",
+    Tactic = "Initial Access / Persistence",
+    AlertReason = strcat(
+        "Tier 0/1 account logon outside business hours — ",
+        TargetUserName, " at ",
+        format_datetime(TimeGenerated, "ddd HH:mm")
+    )
+| project TimeGenerated, Computer, TargetUserName, LogonType,
+          IpAddress, LogonHour, AlertReason, Severity, TechniqueID
