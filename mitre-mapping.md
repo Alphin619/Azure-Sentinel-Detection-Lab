@@ -25,14 +25,16 @@ A complete mapping of all detections in this lab to the MITRE ATT&CK framework.
 **T1110.001 - Brute Force**
 Detected via EventID 4625 (failed logon). Dynamic severity based on attempt volume within a 15-minute static window. Known limitation: static bin() buckets mean an attacker splitting attempts across two windows evades detection. Threat Hunting Hypothesis 1 addresses this gap.
 
-**T1078 — Valid Accounts**
-Detected via EventID 4624 (successful logon) filtered to LogonType 2 and 10 (interactive and RDP). Monitors named privileged accounts outside business hours. Query written and documented — not simulated in this lab as the monitored accounts do not exist in the lab environment.
+**T1078 - Valid Accounts**
+Detected via EventID 4624 (successful logon) filtered to LogonType 2 and 10 (interactive and RDP). Monitors named privileged accounts outside business hours. Query written and documented are not simulated in this lab as the monitored accounts do not exist in the lab environment.
 
 **T1059.001 - PowerShell**
 Detected via EventID 4688 (process creation) filtered to powershell.exe and pwsh.exe with suspicious flag patterns. Requires command-line logging enabled via registry key. EncodedPayload field extracts Base64 payload automatically for analyst triage.
 
 **T1087.001 - Account Discovery**
-Detected via EventID 4688 using pattern matching on enumeration commands. Volume-based detection — a single whoami is normal, four enumeration commands in ten minutes is not. Detects the sequence rather than individual commands to reduce false positives.
+Detected via EventID 4688 using pattern matching on enumeration commands. Volume-based detection in a single whoami is normal, four enumeration commands in ten minutes is not. Detects the sequence rather than individual commands to reduce false positives.
 
 **T1136.001 - Create Account**
 Detected via union of EventID 4688 (net user /add command) and EventID 4720 (Windows account management event). Dual-signal approach catches both command-line and API-based account creation. DetectionMethod field identifies which signal fired.
+
+---
