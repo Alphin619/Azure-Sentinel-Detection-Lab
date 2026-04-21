@@ -1,1 +1,40 @@
+// MITRE ATT&CK: T1110.001 - Brute Force: Password Guessing
+// Tactic: Credential Access
+// Severity: Dynamic (Low / Medium / High based on volume)
+// Data Source: SecurityEvent, EventID 4625
+//
+// Trigger: 5 or more failed logon attempts against the same host within 15 minutes
+//
+// KNOWN LIMITATION - Static time buckets:
+// bin(TimeGenerated, 15m) groups events into fixed 15-minute windows
+// (00:00-00:15, 00:15-00:30, etc.) rather than a true rolling window.
+// An attacker who deliberately straddles two buckets with 4 attempts each
+// would evade this detection. This is a known constraint of KQL's bin() function.
+// Mitigation: the threat hunting hypothesis in /threat-hunting/hunting-hypotheses.md
+// covers slow and distributed sprays across longer windows.
 
+SecurityEvent
+| where EventID == 4625
+| where TimeGenerated > ago(15m)
+| summarize
+    FailedAttempts = count(),
+    DistinctAccounts = dcount(TargetUserName),
+    AccountList = make_set(TargetUserName, 10),
+    SourceIPs = make_set(IpAddress, 10),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated)
+    by Computer, bin(TimeGenerated, 15m)
+| where FailedAttempts >= 5
+| extend
+    Severity = case(
+        FailedAttempts >= 20, "High",
+        FailedAttempts >= 10, "Medium",
+        "Low"
+    ),
+    TechniqueID = "T1110.001",
+    TechniqueName = "Brute Force: Password Guessing",
+    Tactic = "Credential Access"
+| project FirstSeen, LastSeen, Computer, FailedAttempts,
+          DistinctAccounts, AccountList, SourceIPs,
+          Severity, TechniqueID, Tactic
+| order by FailedAttempts desc
