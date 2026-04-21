@@ -1,1 +1,46 @@
+// MITRE ATT&CK: T1059.001 - PowerShell
+// Tactic: Execution
+// Severity: Dynamic (Medium / High based on pattern)
+// Data Source: SecurityEvent, EventID 4688
+//
+// Trigger: PowerShell launched with high-risk execution flags or download cradle indicators
+//
+// Requires: EventID 4688 with CommandLine logging enabled
+// See /infrastructure/audit-policy-config.md for the registry key required
+//
+// Why these patterns:
+// -EncodedCommand / -enc  - obfuscates the command in Base64 to evade string detection
+// IEX / Invoke-Expression - executes a string as code, used in fileless malware
+// DownloadString / WebClient - downloads and executes code from a remote URL
+// -nop / bypass - disables execution policy to run unsigned scripts
+// FromBase64String - decodes obfuscated payloads at runtime
+//
+// The EncodedPayload field extracts the Base64 string automatically
+// so an analyst can decode it in CyberChef immediately from the alert
 
+SecurityEvent
+| where EventID == 4688
+| where Process has_any ("powershell.exe", "pwsh.exe")
+| where CommandLine has_any (
+    "-EncodedCommand", "-enc ", "IEX", "Invoke-Expression",
+    "DownloadString", "DownloadFile", "WebClient",
+    "bypass", "-nop", "FromBase64String",
+    "System.Reflection.Assembly"
+)
+| extend
+    Severity = case(
+        CommandLine has_any ("-EncodedCommand", "-enc ", "IEX",
+                             "Invoke-Expression", "DownloadString"), "High",
+        CommandLine has_any ("bypass", "-nop", "FromBase64String"), "Medium",
+        "Low"
+    ),
+    TechniqueID = "T1059.001",
+    TechniqueName = "PowerShell Execution",
+    Tactic = "Execution",
+    EncodedPayload = extract(
+        @"-[eE][nN][cC][oO][dD][eE][dD][cC][oO][mM][mM][aA][nN][dD]\s+([A-Za-z0-9+/=]+)",
+        1, CommandLine
+    )
+| project TimeGenerated, Computer, SubjectUserName, Process,
+          CommandLine, EncodedPayload, Severity, TechniqueID, Tactic
+| order by TimeGenerated desc
